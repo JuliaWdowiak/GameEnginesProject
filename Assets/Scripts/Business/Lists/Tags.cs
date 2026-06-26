@@ -1,0 +1,10 @@
+﻿namespace Assets.Scripts.Business.Lists
+{
+    public static class Tags
+    {
+        public const string LevelStructure = "LevelStructure";
+        public const string PlayerSpawnPoint = "PlayerSpawnPoint";
+        public const string Player = "Player";
+        public const string NPC = "NPC";
+    }
+}
