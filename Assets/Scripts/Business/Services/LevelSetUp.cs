@@ -17,28 +17,26 @@ using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using Assets.Scripts.Objects.Actors.Enemy;
 using Assets.Scripts.Business.SaveManagement;
+using Assets.Scripts.Objects.Portals;
 
 namespace Assets.Scripts.Business.Services
 {
     public class LevelSetUp : Service
     {
-        //private Action<GameObject, GameObject, ActorController, GameObject, Action> _onDoorEnterAction;
         private Action<GameObject> _playerDeathHandler;
         private Func<GameObject, GameObject> _instantiateFunction;
         private Action _quitGame;
-        private Action<string> _proceedToNextLevel;
+        private Action _proceedToNextLevel;
         public List<GameObject> Enemies = new List<GameObject>();
         public ActorController Player;
 
         private float _globalVolume;
 
         public void Init(
-            //Action<GameObject, GameObject, ActorController, GameObject, Action> onDoorEnterAction,
             Action<GameObject> playerDeathHandler,
             Func<GameObject, GameObject> instantiateFunc,
-            Action quitGame, Action<string> proceedToNextLevel)
+            Action quitGame, Action proceedToNextLevel)
         {
-            //_onDoorEnterAction = onDoorEnterAction;
             _playerDeathHandler = playerDeathHandler;
             _instantiateFunction = instantiateFunc;
             _quitGame = quitGame;
@@ -48,6 +46,7 @@ namespace Assets.Scripts.Business.Services
         public void SetUp(Scene level, float volumeModifier, bool? startNewGame = true)
         {
             _globalVolume = volumeModifier;
+            Enemies = new List<GameObject>();
 
             var objects = level.GetRootGameObjects();
             GameObject structure = null;
@@ -76,6 +75,9 @@ namespace Assets.Scripts.Business.Services
 
                     if ((!SaveManager.HasSave && startNewGame.Value) || (SaveManager.HasSave && startNewGame.Value)) continue;
 
+                    Debug.Log("SaveManager.GetEnemiesIDs(): " + SaveManager.GetEnemiesIDs().Length);
+                    Debug.Log("obj.GetComponent<EnemyLogic>().ID: " + obj.GetComponent<EnemyLogic>().ID);
+
                     if (SaveManager.GetEnemiesIDs()[obj.GetComponent<EnemyLogic>().ID] < 0)
                         obj.GetComponent<ActorController>().StateMachine.RegisterStateChange(ActorState.Dieing);
                     else {
@@ -101,7 +103,9 @@ namespace Assets.Scripts.Business.Services
                 }
                 else if (obj.name == "Cams")
                 {
-                    var cam = obj.GetComponentInChildren<CinemachineCamera>().Follow = player.transform;
+                    var cam = obj.GetComponentInChildren<CinemachineCamera>();
+                    Debug.Log("cam: " + cam);
+                    //cam.Follow = player.transform;
                 }
             }
 
@@ -109,9 +113,14 @@ namespace Assets.Scripts.Business.Services
             Player.Init(player.transform.position);//"Data/ActorsData/PlayerData", globalVolume, staminaBar);
             if (SaveManager.HasSave && !startNewGame.Value)
             {
-                player.transform.position = new Vector3(SaveManager.GetPlayerPosition()[0], SaveManager.GetPlayerPosition()[1], SaveManager.GetPlayerPosition()[2]);
+                if (level.name == SaveManager.GetLevel())
+                {
+                    player.transform.position = new Vector3(SaveManager.GetPlayerPosition()[0], SaveManager.GetPlayerPosition()[1], SaveManager.GetPlayerPosition()[2]);
+
+                    Player.StateMachine.RegisterStateChange(SaveManager.GetPlayerState());
+                }
+
                 Player.StateMachine.RegisterStateChange(SaveManager.GetPlayerLookDirection());
-                Player.StateMachine.RegisterStateChange(SaveManager.GetPlayerState());
                 Player.SetDamage(SaveManager.GetPlayerDamage());
 
                 foreach (int i in SaveManager.GetPlayerInventory()) Player.ActorInventory.StoreItem(i);
@@ -126,36 +135,41 @@ namespace Assets.Scripts.Business.Services
             escapeMenu.gameObject.SetActive(false);
 
             if (structure == null) Debug.LogError("Null Structure");
-            //for (int i = 0; i < structure.transform.childCount; i++)
-            //{
-            //    if (structure.transform.GetChild(i).gameObject.layer == Layers.Spawners)
-            //        spawnManager = structure.transform.GetChild(i).GetComponent<SpawnManager>();
-            //else structure.transform.GetChild(i).gameObject.SetActive(false);
+            for (int i = 0; i < structure.transform.childCount; i++)
+            {
+                if (structure.transform.GetChild(i).tag == Tags.NextLevelPortal)
+                {
+                    structure.transform.GetChild(i).gameObject.SetActive(false);
+                    structure.transform.GetChild(i).GetComponent<Portal>().Init(_proceedToNextLevel);
+                }
+                //    if (structure.transform.GetChild(i).gameObject.layer == Layers.Spawners)
+                //        spawnManager = structure.transform.GetChild(i).GetComponent<SpawnManager>();
+                //else structure.transform.GetChild(i).gameObject.SetActive(false);
 
-            //var doors = structure.transform.GetChild(i).GetComponentsInChildren<Door>();
-            //for (int j = 0; j < doors.Length; j++)
-            //{
-            //    doors[j].SetInteractionAreaEnterCallback((GameObject interactive) =>
-            //    {
-            //        actorContoller.CanInteractWithObject = true;
-            //        actorContoller.ObjectToInteract = interactive.GetComponent<InteractiveObject>();
-            //    });
+                //var doors = structure.transform.GetChild(i).GetComponentsInChildren<Door>();
+                //for (int j = 0; j < doors.Length; j++)
+                //{
+                //    doors[j].SetInteractionAreaEnterCallback((GameObject interactive) =>
+                //    {
+                //        actorContoller.CanInteractWithObject = true;
+                //        actorContoller.ObjectToInteract = interactive.GetComponent<InteractiveObject>();
+                //    });
 
-            //    doors[j].SetInteractionAreaExitCallback(() =>
-            //    {
-            //        actorContoller.CanInteractWithObject = false;
-            //        actorContoller.ObjectToInteract = null;
-            //    });
+                //    doors[j].SetInteractionAreaExitCallback(() =>
+                //    {
+                //        actorContoller.CanInteractWithObject = false;
+                //        actorContoller.ObjectToInteract = null;
+                //    });
 
-            //    doors[j].Init(
-            //        (GameObject currentRoom, GameObject targetRoom, ActorController actor, GameObject door, Action onFaded) =>
-            //        {
-            //            //player.GetComponent<ActorController>().SetCurrentRoom(targetRoom);
-            //            actor.SetCurrentRoom(targetRoom);
-            //            _onDoorEnterAction(currentRoom, targetRoom, actor, door, onFaded);
-            //        });
-            //}
-            //}
+                //    doors[j].Init(
+                //        (GameObject currentRoom, GameObject targetRoom, ActorController actor, GameObject door, Action onFaded) =>
+                //        {
+                //            //player.GetComponent<ActorController>().SetCurrentRoom(targetRoom);
+                //            actor.SetCurrentRoom(targetRoom);
+                //            _onDoorEnterAction(currentRoom, targetRoom, actor, door, onFaded);
+                //        });
+                //}
+            }
             player.GetComponent<ActorController>().SetDeathAction(() =>
             {
                 _playerDeathHandler(player);
@@ -164,5 +178,7 @@ namespace Assets.Scripts.Business.Services
 
             OnWorkFinished();
         }
+
+
     }
 }

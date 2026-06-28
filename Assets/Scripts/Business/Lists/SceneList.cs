@@ -2,9 +2,9 @@
 {
     public static class SceneList
     {
-        public static readonly string MainMenu = "MainMenu";
-        public static readonly string Level_01 = "Level_00";
-        public static readonly string Level_02 = "Level_02";
-        public static readonly string TestScene = "Level_TestScene";
+        public const string MainMenu = "MainMenu";
+        public const string Level_01 = "Level_00";
+        public const string Level_02 = "Level_02";
+        public const string TestScene = "Level_TestScene";
     }
 }

@@ -7,11 +7,13 @@ namespace Assets.Scripts.Objects.InteractibleObjects
     {
         public int ObjectID = 1;
         [SerializeField] private GameObject Hint;
+        [SerializeField] private GameObject PortalToNextLevel;
 
         public void ShowHint() => Hint.SetActive(true);
         public void HideHint() => Hint.SetActive(false);
         public void OnBeingPicked()
         {
+            PortalToNextLevel.SetActive(true);
             Destroy(gameObject);
         }
     }

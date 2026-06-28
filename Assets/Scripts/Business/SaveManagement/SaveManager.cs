@@ -20,6 +20,8 @@ namespace Assets.Scripts.Business.SaveManagement
         {
             HasSave = true;
 
+            Debug.Log(player);
+
             float[] playerPosition = new float[3];
             playerPosition[0] = player.transform.position.x;
             playerPosition[1] = player.transform.position.y;

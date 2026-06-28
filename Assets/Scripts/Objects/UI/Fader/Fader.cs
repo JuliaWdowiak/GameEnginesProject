@@ -43,6 +43,7 @@ namespace Assets.Scripts.Objects.Fader
 
         public void FadeOut(Action onFadedOutCallback)
         {
+            Debug.Log("(Fade Out) IsFading: " + IsFading + "IsFaded: " + animator.GetBool("IsFaded"));
             if (IsFading) return;
 
             IsFading = true;

@@ -111,6 +111,11 @@ namespace Assets.Scripts.Objects.Actors
 
         public static void InteractWithObject(ActorController actor)
         {
+            if (actor.Interactible == null)
+            {
+                actor.StateMachine.RegisterStateChange(ActorState.FinishedInteracting);
+                return;
+            }
             var interatible = actor.Interactible;
             actor.ActorInventory.StoreItem(interatible.ObjectID);
             actor.ResetInteractible();

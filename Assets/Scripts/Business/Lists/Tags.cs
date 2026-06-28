@@ -9,5 +9,6 @@
         public const string AttackCollider = "AttackCollider";
         public const string LeftmostPoint = "LeftmostPoint";
         public const string RightmostPoint = "RightmostPoint";
+        public const string NextLevelPortal = "NextLevelPortal";
     }
 }

@@ -11,7 +11,6 @@ using Assets.Scripts.Objects.Spawners;
 using System;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 
 namespace Assets.Scripts.Business
@@ -36,15 +35,22 @@ namespace Assets.Scripts.Business
         private void Start()
         {
             _setUpper.Init(
-                //onDoorEnterAction: (GameObject currentRoom, GameObject targetRoom, ActorController initiator, GameObject door, Action onFaded) => {
-                //    StartCoroutine(_roomSwitcher.SwitchTo(currentRoom, targetRoom, initiator, door, onFaded)); 
-                //},
                 playerDeathHandler: (GameObject player) => {
                     PlayerDeath(player); 
                 },
                 instantiateFunc: Instantiate,
                 quitGame: () => { Debug.Log("QuiteButton Clicked"); StartCoroutine(SaveAndExit(LoadScene(SceneList.MainMenu, SetupMainMenu, true))); },
-                proceedToNextLevel: (string level) => { SaveAndGoToNextLevel(level); }
+                proceedToNextLevel: () => {
+                    
+                    string level = _currentSceneName;
+                    switch (_currentSceneName)
+                    {
+                        case SceneList.Level_01: level = SceneList.Level_02; break;
+                        default: level = SceneList.Level_01; break;
+                    }
+                    Debug.Log("NextLevel: " + level);
+                    StartCoroutine(SaveAndGoToNextLevel(level));
+                }
             );
             if (_currentSceneName == null)
             {
@@ -62,6 +68,7 @@ namespace Assets.Scripts.Business
             while (waitForFading)
                 yield return null;
 
+            Debug.Log("_setUpper.Player; " + _setUpper.Player);
             SaveManager.SaveGame(_setUpper.Player, _setUpper.Enemies, _currentSceneName);
             Debug.Log("Saved");
             StartCoroutine(SceneLoad);
@@ -69,14 +76,8 @@ namespace Assets.Scripts.Business
         }
         private IEnumerator SaveAndGoToNextLevel(string level)
         {
-            var waitForFading = true;
+            yield return null;
 
-            Fader.instance.FadeIn(() => waitForFading = false);
-
-            while (waitForFading)
-                yield return null;
-
-            SaveManager.SaveGame(_setUpper.Player, _setUpper.Enemies, _currentSceneName);
             StartCoroutine(LoadScene(level));
         }
 
@@ -90,6 +91,7 @@ namespace Assets.Scripts.Business
                 (float value) => {
                     if (SaveManager.HasSave) {
                         _isStartingNew = false;
+                        Debug.Log(SaveManager.GetLevel());
                         StartCoroutine(LoadScene(SaveManager.GetLevel()));
                     }
                 }, // StartButton Callback
@@ -100,31 +102,40 @@ namespace Assets.Scripts.Business
             });
         }
 
-        private IEnumerator LoadScene(string sceneName)
+        private IEnumerator LoadScene(string sceneName, bool? isFaded = false, bool? skipFadeOut = false)
         {
-            var waitForFading = true;
+            bool waitForFading;
+            Debug.Log("isFaded.Value: " + isFaded.Value);
+            if (!isFaded.Value)
+            {
+                waitForFading = true;
 
-            Fader.instance.FadeIn(() => waitForFading = false);
+                Fader.instance.FadeIn(() => waitForFading = false);
 
-            while (waitForFading)
-                yield return null;
-
+                while (waitForFading)
+                    yield return null;
+            }
+            Debug.Log("loading....");
             _sceneLoader.LoadScene(sceneName);
-
+            Debug.Log("Loaded????");
             while (_sceneLoader.GetCurrentLoadingProgress() < 1f)
                 yield return null;
+            Debug.Log("Loaded!!!!!");
 
             if (sceneName.Split("_")[0] == "Level") _setUpper.SetUp(SceneManager.GetActiveScene(), _globalVolumeModifier, _isStartingNew);
-            if (_isStartingNew || !SaveManager.HasSave) SaveManager.SaveGame(_setUpper.Player, _setUpper.Enemies, _currentSceneName);
-
-            waitForFading = true;
-            Fader.instance.FadeOut(() => waitForFading = false);
             _currentSceneName = sceneName;
+            //if (!SaveManager.HasSave) SaveManager.SaveGame(_setUpper.Player, _setUpper.Enemies, _currentSceneName);
 
-            while (waitForFading)
-                yield return null;
+            if (!skipFadeOut.Value)
+            {
+                waitForFading = true;
+                Fader.instance.FadeOut(() => waitForFading = false);
+
+                while (waitForFading)
+                    yield return null;
+            }
         }
-        private IEnumerator LoadScene(string sceneName, Action callback, bool? isFaded = false)
+        private IEnumerator LoadScene(string sceneName, Action callback, bool? isFaded = false, bool? skipFadeOut = false)
         {
             bool waitForFading;
             Debug.Log("isFaded.Value: " + isFaded.Value);
@@ -144,13 +155,17 @@ namespace Assets.Scripts.Business
             }
 
             if (sceneName.Split("_")[0] == "Level") _setUpper.SetUp(SceneManager.GetActiveScene(), _globalVolumeModifier, _isStartingNew);
-            if (_isStartingNew || !SaveManager.HasSave) SaveManager.SaveGame(_setUpper.Player, _setUpper.Enemies, _currentSceneName);
+            _currentSceneName = sceneName;
+            //if ((_isStartingNew || !SaveManager.HasSave) && sceneName != SceneList.MainMenu) SaveManager.SaveGame(_setUpper.Player, _setUpper.Enemies, _currentSceneName);
 
-            waitForFading = true;
-            Fader.instance.FadeOut(() => waitForFading = false);
+            if (!skipFadeOut.Value)
+            {
+                waitForFading = true;
+                Fader.instance.FadeOut(() => waitForFading = false);
 
-            while (waitForFading)
-                yield return null;
+                while (waitForFading)
+                    yield return null;
+            }
         }
 
         private void PlayerDeath(GameObject player)
