@@ -1,5 +1,7 @@
 using Assets.Scripts.Business.Lists;
 using Assets.Scripts.Business.Menus.MainMenu;
+using Assets.Scripts.Business.SaveManagement;
+
 
 //using Assets.Scripts.Business.Menus.MainMenu;
 using Assets.Scripts.Business.Services;
@@ -24,6 +26,7 @@ namespace Assets.Scripts.Business
         private Scene _currentScene;
 
         private float _globalVolumeModifier = 1f;
+        private bool _isStartingNew = true;
 
         private void Awake()
         {
@@ -37,16 +40,44 @@ namespace Assets.Scripts.Business
                 //    StartCoroutine(_roomSwitcher.SwitchTo(currentRoom, targetRoom, initiator, door, onFaded)); 
                 //},
                 playerDeathHandler: (GameObject player) => {
-                    StartCoroutine(PlayerDeath(player)); 
+                    PlayerDeath(player); 
                 },
                 instantiateFunc: Instantiate,
-                quitGame: () => { StartCoroutine(LoadScene(SceneList.MainMenu, SetupMainMenu)); }
+                quitGame: () => { Debug.Log("QuiteButton Clicked"); StartCoroutine(SaveAndExit(LoadScene(SceneList.MainMenu, SetupMainMenu, true))); },
+                proceedToNextLevel: (string level) => { SaveAndGoToNextLevel(level); }
             );
             if (_currentSceneName == null)
             {
                 _currentSceneName = SceneList.MainMenu;
                 _sceneLoader.LoadScene(_currentSceneName, SetupMainMenu);
             }
+        }
+
+        private IEnumerator SaveAndExit(IEnumerator SceneLoad)
+        {
+            var waitForFading = true;
+
+            Fader.instance.FadeIn(() => waitForFading = false);
+
+            while (waitForFading)
+                yield return null;
+
+            SaveManager.SaveGame(_setUpper.Player, _setUpper.Enemies, _currentSceneName);
+            Debug.Log("Saved");
+            StartCoroutine(SceneLoad);
+            yield return null;
+        }
+        private IEnumerator SaveAndGoToNextLevel(string level)
+        {
+            var waitForFading = true;
+
+            Fader.instance.FadeIn(() => waitForFading = false);
+
+            while (waitForFading)
+                yield return null;
+
+            SaveManager.SaveGame(_setUpper.Player, _setUpper.Enemies, _currentSceneName);
+            StartCoroutine(LoadScene(level));
         }
 
         private void SetupMainMenu()
@@ -57,10 +88,14 @@ namespace Assets.Scripts.Business
             menuManager.SetUp(new Action<float>[]
             {
                 (float value) => {
-                    StartCoroutine(LoadScene(SceneList.Level_01));
+                    if (SaveManager.HasSave) {
+                        _isStartingNew = false;
+                        StartCoroutine(LoadScene(SaveManager.GetLevel()));
+                    }
                 }, // StartButton Callback
                 (float value) => {
-                    _globalVolumeModifier = value;
+                    _isStartingNew = true;
+                    StartCoroutine(LoadScene(SceneList.Level_01));
                 }, // VolumeAdjusting
             });
         }
@@ -79,29 +114,37 @@ namespace Assets.Scripts.Business
             while (_sceneLoader.GetCurrentLoadingProgress() < 1f)
                 yield return null;
 
-            if (sceneName.Split("_")[0] == "Level") _setUpper.SetUp(SceneManager.GetActiveScene(), _globalVolumeModifier);
+            if (sceneName.Split("_")[0] == "Level") _setUpper.SetUp(SceneManager.GetActiveScene(), _globalVolumeModifier, _isStartingNew);
+            if (_isStartingNew || !SaveManager.HasSave) SaveManager.SaveGame(_setUpper.Player, _setUpper.Enemies, _currentSceneName);
 
             waitForFading = true;
             Fader.instance.FadeOut(() => waitForFading = false);
+            _currentSceneName = sceneName;
 
             while (waitForFading)
                 yield return null;
         }
-        private IEnumerator LoadScene(string sceneName, Action callback)
+        private IEnumerator LoadScene(string sceneName, Action callback, bool? isFaded = false)
         {
-            var waitForFading = true;
+            bool waitForFading;
+            Debug.Log("isFaded.Value: " + isFaded.Value);
+            if (!isFaded.Value)
+            {
+                waitForFading = true;
 
-            Fader.instance.FadeIn(() => waitForFading = false);
+                Fader.instance.FadeIn(() => waitForFading = false);
 
-            while (waitForFading)
-                yield return null;
-
+                while (waitForFading)
+                    yield return null;
+            }
             _sceneLoader.LoadScene(sceneName, callback);
 
-            while (_sceneLoader.GetCurrentLoadingProgress() < 1f)
+            while (_sceneLoader.GetCurrentLoadingProgress() < 1f) {
                 yield return null;
+            }
 
-            if (sceneName.Split("_")[0] == "Level") _setUpper.SetUp(SceneManager.GetActiveScene(), _globalVolumeModifier);
+            if (sceneName.Split("_")[0] == "Level") _setUpper.SetUp(SceneManager.GetActiveScene(), _globalVolumeModifier, _isStartingNew);
+            if (_isStartingNew || !SaveManager.HasSave) SaveManager.SaveGame(_setUpper.Player, _setUpper.Enemies, _currentSceneName);
 
             waitForFading = true;
             Fader.instance.FadeOut(() => waitForFading = false);
@@ -110,23 +153,25 @@ namespace Assets.Scripts.Business
                 yield return null;
         }
 
-        private IEnumerator PlayerDeath(GameObject player)
+        private void PlayerDeath(GameObject player)
         {
-            var waitForFading = true;
+            StartCoroutine(LoadScene(_currentSceneName));
 
-            Fader.instance.FadeIn(() => waitForFading = false);
+            //var waitForFading = true;
 
-            while (waitForFading)
-                yield return null;
+            //Fader.instance.FadeIn(() => waitForFading = false);
 
-            player.GetComponent<ActorController>().Respawn();
+            //while (waitForFading)
+            //    yield return null;
 
-            yield return new WaitForSeconds(1.5f);
-            waitForFading = true;
-            Fader.instance.FadeOut(() => waitForFading = false);
+            //player.GetComponent<ActorController>().Respawn();
 
-            while (waitForFading)
-                yield return null;
+            //yield return new WaitForSeconds(1.5f);
+            //waitForFading = true;
+            //Fader.instance.FadeOut(() => waitForFading = false);
+
+            //while (waitForFading)
+            //    yield return null;
         }
     }
 }

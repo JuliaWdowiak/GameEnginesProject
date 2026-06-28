@@ -33,6 +33,7 @@ namespace Assets.Scripts.Objects.Fader
 
         public void FadeIn(Action onFadedInCallback)
         {
+            Debug.Log("IsFading: " + IsFading);
             if (IsFading) return;
 
             IsFading = true;

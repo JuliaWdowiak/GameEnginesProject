@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Threading;
 using System.Threading.Tasks;
+using Unity.VisualScripting;
 using UnityEditor.U2D.Animation;
 using UnityEngine;
 
@@ -36,9 +37,13 @@ namespace Assets.Scripts.Objects.Actors
 
         public static void Attack(ActorController actor)
         {
+            if (Time.time - actor.LastAttackTime < actor.AttackInterval) return;
+            actor.LastAttackTime = Time.time;
+            Stop(actor);
             actor.StateMachine.RegisterStateChange(ActorState.Attacking);
             GameObject attackCollider = actor.gameObject.transform.GetChild(0).gameObject;
             actor.StartCoroutine(AttackMovement(
+                (int)actor.StateMachine.CurrentDirection,
                 actor.AttackInitialPoint, actor.TicksToStart,
                 actor.AttackMovementVectors, actor.AttackMovementTicks,
                 actor.AttackSpeed, attackCollider,
@@ -46,6 +51,7 @@ namespace Assets.Scripts.Objects.Actors
                 ));
         }
         private static IEnumerator AttackMovement(
+            int direction,
             Vector2 startPoint, int ticksToStart,
             Vector2[] movementVectors, int[] ticks,
             float[] attackSpeed, GameObject attackCollider, 
@@ -66,6 +72,7 @@ namespace Assets.Scripts.Objects.Actors
             {
                 int tick = ticks[i];
                 Vector3 distance = (Vector3)(movementVectors[i] * attackSpeed[i] * Time.fixedDeltaTime);
+                distance = new Vector3(distance.x * direction, distance.y, 1);
 
                 while (tick > 0)
                 {
@@ -80,10 +87,11 @@ namespace Assets.Scripts.Objects.Actors
             yield return null;
         }
 
-        public static async void TakeDamage(ActorController actor, float damage)
+        public static async void TakeDamage(ActorController actor, float damage, Vector2 pushBack)
         {
             actor.StateMachine.RegisterStateChange(ActorState.TakingDamage);
             actor.SetDamage(actor.CurrentDamage + damage);
+            actor.RB.linearVelocity = pushBack;
 
             Debug.Log(actor.name + ": " + actor.CurrentDamage + ", state: " + actor.StateMachine.CurrentState);
 
@@ -97,9 +105,24 @@ namespace Assets.Scripts.Objects.Actors
             }
             else
             {
-                if (actor.gameObject.tag == Tags.Player) actor.OnDeath();
-                else actor.StateMachine.RegisterStateChange(ActorState.Dieing);
+                actor.StateMachine.RegisterStateChange(ActorState.Dieing);
             }
+        }
+
+        public static void InteractWithObject(ActorController actor)
+        {
+            var interatible = actor.Interactible;
+            actor.ActorInventory.StoreItem(interatible.ObjectID);
+            actor.ResetInteractible();
+            interatible.OnBeingPicked();
+            actor.StateMachine.RegisterStateChange(ActorState.FinishedInteracting);
+
+            Debug.Log("Storage:");
+            Debug.Log(actor.ActorInventory.Storage[0]);
+            Debug.Log(actor.ActorInventory.Storage[1]);
+            Debug.Log(actor.ActorInventory.Storage[2]);
+            Debug.Log(actor.ActorInventory.Storage[3]);
+            Debug.Log("StorageEnd");
         }
     }
 }

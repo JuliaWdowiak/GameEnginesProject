@@ -15,6 +15,8 @@ using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
+using Assets.Scripts.Objects.Actors.Enemy;
+using Assets.Scripts.Business.SaveManagement;
 
 namespace Assets.Scripts.Business.Services
 {
@@ -24,21 +26,26 @@ namespace Assets.Scripts.Business.Services
         private Action<GameObject> _playerDeathHandler;
         private Func<GameObject, GameObject> _instantiateFunction;
         private Action _quitGame;
+        private Action<string> _proceedToNextLevel;
+        public List<GameObject> Enemies = new List<GameObject>();
+        public ActorController Player;
 
         private float _globalVolume;
 
         public void Init(
             //Action<GameObject, GameObject, ActorController, GameObject, Action> onDoorEnterAction,
             Action<GameObject> playerDeathHandler,
-            Func<GameObject, GameObject> instantiateFunc, Action quitGame)
+            Func<GameObject, GameObject> instantiateFunc,
+            Action quitGame, Action<string> proceedToNextLevel)
         {
             //_onDoorEnterAction = onDoorEnterAction;
             _playerDeathHandler = playerDeathHandler;
             _instantiateFunction = instantiateFunc;
             _quitGame = quitGame;
+            _proceedToNextLevel = proceedToNextLevel;
         }
 
-        public void SetUp(Scene level, float volumeModifier)
+        public void SetUp(Scene level, float volumeModifier, bool? startNewGame = true)
         {
             _globalVolume = volumeModifier;
 
@@ -57,7 +64,32 @@ namespace Assets.Scripts.Business.Services
                     structure = obj;
                 else if (obj.tag == Tags.Player)
                     player = obj;
-                else if (obj.tag == Tags.NPC) obj.GetComponent<ActorController>().Init(obj.transform.position);
+                else if (obj.tag == Tags.NPC)
+                {
+                    obj.GetComponent<ActorController>().Init(obj.transform.position);
+                    obj.GetComponent<EnemyLogic>().SetID(Enemies.Count);
+                    Enemies.Add(obj);
+                    obj.GetComponent<ActorController>().SetDeathAction(() =>
+                    {
+                        Enemies[obj.GetComponent<EnemyLogic>().ID] = null;
+                    });
+
+                    if ((!SaveManager.HasSave && startNewGame.Value) || (SaveManager.HasSave && startNewGame.Value)) continue;
+
+                    if (SaveManager.GetEnemiesIDs()[obj.GetComponent<EnemyLogic>().ID] < 0)
+                        obj.GetComponent<ActorController>().StateMachine.RegisterStateChange(ActorState.Dieing);
+                    else {
+                        int index = obj.GetComponent<EnemyLogic>().ID * 3;
+
+                        obj.transform.position = new Vector3(
+                            SaveManager.GetEnemiesPositions()[index],
+                            SaveManager.GetEnemiesPositions()[index + 1],
+                            SaveManager.GetEnemiesPositions()[index + 2]
+                            );
+
+                        obj.GetComponent<ActorController>().StateMachine.RegisterStateChange((LookDirection)SaveManager.GetEnemiesLookDirection()[obj.GetComponent<EnemyLogic>().ID]);
+                    }
+                }
                 else if (obj.name == "Global")
                 {
                     globalVolume = obj.GetComponentInChildren<Volume>();
@@ -73,15 +105,23 @@ namespace Assets.Scripts.Business.Services
                 }
             }
 
-            var actorContoller = player.GetComponent<ActorController>();
-            actorContoller.Init(player.transform.position);//"Data/ActorsData/PlayerData", globalVolume, staminaBar);
+            Player = player.GetComponent<ActorController>();
+            Player.Init(player.transform.position);//"Data/ActorsData/PlayerData", globalVolume, staminaBar);
+            if (SaveManager.HasSave && !startNewGame.Value)
+            {
+                player.transform.position = new Vector3(SaveManager.GetPlayerPosition()[0], SaveManager.GetPlayerPosition()[1], SaveManager.GetPlayerPosition()[2]);
+                Player.StateMachine.RegisterStateChange(SaveManager.GetPlayerLookDirection());
+                Player.StateMachine.RegisterStateChange(SaveManager.GetPlayerState());
+                Player.SetDamage(SaveManager.GetPlayerDamage());
+
+                foreach (int i in SaveManager.GetPlayerInventory()) Player.ActorInventory.StoreItem(i);
+            }
             //actorContoller.SetVolume(_globalVolume);
 
             //player.GetComponent<>().Menu = escapeMenu.gameObject;
 
             escapeMenu.SetUp(new Action<float>[] {
-                (float value) => { _quitGame(); }, //Quite game button
-                (float value) => { _globalVolume = value; /*actorContoller.SetVolume(value); */ }, //adjust Volume
+                (float value) => { _quitGame(); } //Quite game button
             });
             escapeMenu.gameObject.SetActive(false);
 
@@ -116,10 +156,10 @@ namespace Assets.Scripts.Business.Services
             //        });
             //}
             //}
-            player.GetComponent<ActorController>().OnDeath = () =>
+            player.GetComponent<ActorController>().SetDeathAction(() =>
             {
                 _playerDeathHandler(player);
-            };
+            });
             //spawnManager.SpawnPlayer(player);
 
             OnWorkFinished();

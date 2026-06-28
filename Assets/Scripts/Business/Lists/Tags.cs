@@ -7,5 +7,7 @@
         public const string Player = "Player";
         public const string NPC = "NPC";
         public const string AttackCollider = "AttackCollider";
+        public const string LeftmostPoint = "LeftmostPoint";
+        public const string RightmostPoint = "RightmostPoint";
     }
 }

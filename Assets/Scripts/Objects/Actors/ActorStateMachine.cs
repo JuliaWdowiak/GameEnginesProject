@@ -6,7 +6,7 @@ namespace Assets.Scripts.Objects.Actors
         None, Running, Standing, Dashing,
         Jumping, Accelerating, StoppingJump, Decellerating, Falling, Landing,
         StartingAttack, Attacking, FinishedAttacking, TakingDamage, TookDamage,
-        Interacting, Dieing
+        Interacting, FinishedInteracting, Dieing
     }
     public enum LookDirection { Left=-1, None=0, Right=1 }
 
@@ -21,6 +21,8 @@ namespace Assets.Scripts.Objects.Actors
         public LookDirection CurrentDirection { get; private set; }
         public LookDirection LastDirection { get; private set; }
 
+        public string name = "";
+
 
         public void RegisterStateChange(ActorState state)
         {            
@@ -30,6 +32,7 @@ namespace Assets.Scripts.Objects.Actors
         }
         public void RegisterStateChange(LookDirection lookDirection)
         {
+            if (lookDirection == LookDirection.None) return;
             _registeredDirection = lookDirection;
             UpdateState();
         }
@@ -42,6 +45,8 @@ namespace Assets.Scripts.Objects.Actors
         private bool CanBeApplied(ActorState actorState)
         {
             if (actorState == ActorState.None) return false;
+            if (CurrentState == ActorState.Dieing) return false;
+            if (actorState == ActorState.Dieing) return true;
 
             if (actorState == ActorState.StoppingJump) Debug.Log(actorState);
             if (CurrentState == ActorState.Jumping && actorState != ActorState.Accelerating) return false;
@@ -58,14 +63,19 @@ namespace Assets.Scripts.Objects.Actors
             if (CurrentState == ActorState.Attacking && actorState != ActorState.FinishedAttacking) return false;
             if (CurrentState == ActorState.FinishedAttacking && actorState != ActorState.Standing) return false;
 
-            if (CurrentState == ActorState.TakingDamage && actorState != ActorState.TookDamage && actorState != ActorState.Dieing) return false;
+            if (CurrentState == ActorState.TakingDamage && actorState != ActorState.TookDamage) return false;
             if (CurrentState == ActorState.TookDamage && actorState != ActorState.Standing) return false;
-            Debug.Log("State: " + actorState);
+
+            if (CurrentState == ActorState.Interacting && actorState != ActorState.FinishedInteracting) return false;
+            if (CurrentState == ActorState.FinishedInteracting && actorState != ActorState.Standing) return false;
+
+                Debug.Log(name + " State: " + actorState);
             return true;
         }
         private bool CanBeApplied(LookDirection direction)
         {
             if (CurrentState == ActorState.Dashing) return false;
+            if (direction == LookDirection.None) return false;
             return true;
         }
 

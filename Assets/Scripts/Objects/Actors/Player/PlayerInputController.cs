@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -10,6 +11,10 @@ namespace Assets.Scripts.Objects.Actors.Player
         public InputActionReference move;
         public InputActionReference jump;
         public InputActionReference attack;
+        public InputActionReference interact;
+
+        public InputActionReference openMenu;
+        public GameObject Menu;
 
         private ActorController _player;
 
@@ -42,6 +47,8 @@ namespace Assets.Scripts.Objects.Actors.Player
             jump.action.canceled += StopJump;
 
             attack.action.started += Attack;
+            interact.action.started += Interact;
+            openMenu.action.started += OpenMenu;
         }
         public void OnDisable()
         {
@@ -49,6 +56,8 @@ namespace Assets.Scripts.Objects.Actors.Player
             jump.action.canceled -= StopJump;
 
             attack.action.started -= Attack;
+            interact.action.started -= Interact;
+            openMenu.action.started -= OpenMenu;
         }
 
         private void StopJump(InputAction.CallbackContext context)
@@ -64,6 +73,16 @@ namespace Assets.Scripts.Objects.Actors.Player
         private void Attack(InputAction.CallbackContext context)
         {
             _player.StateMachine.RegisterStateChange(ActorState.StartingAttack);
+        }
+        private void Interact(InputAction.CallbackContext context)
+        {
+            _player.StateMachine.RegisterStateChange(ActorState.Interacting);
+        }
+
+        private void OpenMenu(InputAction.CallbackContext context)
+        {
+            if (Menu == null) return;
+            Menu.SetActive(!Menu.activeSelf);
         }
     }
 }

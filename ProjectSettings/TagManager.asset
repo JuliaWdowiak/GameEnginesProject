@@ -8,6 +8,8 @@ TagManager:
   - PlayerSpawnPoint
   - NPC
   - AttackCollider
+  - LeftmostPoint
+  - RightmostPoint
   layers:
   - Default
   - TransparentFX
