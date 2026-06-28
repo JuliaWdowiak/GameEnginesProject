@@ -9,6 +9,7 @@ namespace Assets.Scripts.Objects.Actors.Player
     {
         public InputActionReference move;
         public InputActionReference jump;
+        public InputActionReference attack;
 
         private ActorController _player;
 
@@ -39,11 +40,15 @@ namespace Assets.Scripts.Objects.Actors.Player
         {
             jump.action.started += Jump;
             jump.action.canceled += StopJump;
+
+            attack.action.started += Attack;
         }
         public void OnDisable()
         {
             jump.action.started -= Jump;
             jump.action.canceled -= StopJump;
+
+            attack.action.started -= Attack;
         }
 
         private void StopJump(InputAction.CallbackContext context)
@@ -54,6 +59,11 @@ namespace Assets.Scripts.Objects.Actors.Player
         private void Jump(InputAction.CallbackContext context)
         {
             _player.StateMachine.RegisterStateChange(ActorState.Jumping);
+        }
+
+        private void Attack(InputAction.CallbackContext context)
+        {
+            _player.StateMachine.RegisterStateChange(ActorState.StartingAttack);
         }
     }
 }

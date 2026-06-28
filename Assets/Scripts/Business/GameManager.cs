@@ -36,8 +36,8 @@ namespace Assets.Scripts.Business
                 //onDoorEnterAction: (GameObject currentRoom, GameObject targetRoom, ActorController initiator, GameObject door, Action onFaded) => {
                 //    StartCoroutine(_roomSwitcher.SwitchTo(currentRoom, targetRoom, initiator, door, onFaded)); 
                 //},
-                playerDeathHandler: (SpawnManager manager, GameObject player) => {
-                    StartCoroutine(PlayerDeath(manager, player)); 
+                playerDeathHandler: (GameObject player) => {
+                    StartCoroutine(PlayerDeath(player)); 
                 },
                 instantiateFunc: Instantiate,
                 quitGame: () => { StartCoroutine(LoadScene(SceneList.MainMenu, SetupMainMenu)); }
@@ -110,7 +110,7 @@ namespace Assets.Scripts.Business
                 yield return null;
         }
 
-        private IEnumerator PlayerDeath(SpawnManager manager, GameObject player)
+        private IEnumerator PlayerDeath(GameObject player)
         {
             var waitForFading = true;
 
@@ -119,10 +119,7 @@ namespace Assets.Scripts.Business
             while (waitForFading)
                 yield return null;
 
-            //player.GetComponent<ActorController>().CurrentRoom.SetActive(false);
-            //manager.SpawnPlayer(player);
-            //player.GetComponent<ActorController>().Restore();
-            //player.GetComponent<ActorController>().CurrentRoom.SetActive(true);
+            player.GetComponent<ActorController>().Respawn();
 
             yield return new WaitForSeconds(1.5f);
             waitForFading = true;

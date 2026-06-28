@@ -21,7 +21,7 @@ namespace Assets.Scripts.Business.Services
     public class LevelSetUp : Service
     {
         //private Action<GameObject, GameObject, ActorController, GameObject, Action> _onDoorEnterAction;
-        private Action<SpawnManager, GameObject> _playerDeathHandler;
+        private Action<GameObject> _playerDeathHandler;
         private Func<GameObject, GameObject> _instantiateFunction;
         private Action _quitGame;
 
@@ -29,7 +29,7 @@ namespace Assets.Scripts.Business.Services
 
         public void Init(
             //Action<GameObject, GameObject, ActorController, GameObject, Action> onDoorEnterAction,
-            Action<SpawnManager, GameObject> playerDeathHandler,
+            Action<GameObject> playerDeathHandler,
             Func<GameObject, GameObject> instantiateFunc, Action quitGame)
         {
             //_onDoorEnterAction = onDoorEnterAction;
@@ -57,6 +57,7 @@ namespace Assets.Scripts.Business.Services
                     structure = obj;
                 else if (obj.tag == Tags.Player)
                     player = obj;
+                else if (obj.tag == Tags.NPC) obj.GetComponent<ActorController>().Init(obj.transform.position);
                 else if (obj.name == "Global")
                 {
                     globalVolume = obj.GetComponentInChildren<Volume>();
@@ -73,7 +74,7 @@ namespace Assets.Scripts.Business.Services
             }
 
             var actorContoller = player.GetComponent<ActorController>();
-            actorContoller.Init();//"Data/ActorsData/PlayerData", globalVolume, staminaBar);
+            actorContoller.Init(player.transform.position);//"Data/ActorsData/PlayerData", globalVolume, staminaBar);
             //actorContoller.SetVolume(_globalVolume);
 
             //player.GetComponent<>().Menu = escapeMenu.gameObject;
@@ -89,36 +90,36 @@ namespace Assets.Scripts.Business.Services
             //{
             //    if (structure.transform.GetChild(i).gameObject.layer == Layers.Spawners)
             //        spawnManager = structure.transform.GetChild(i).GetComponent<SpawnManager>();
-                //else structure.transform.GetChild(i).gameObject.SetActive(false);
+            //else structure.transform.GetChild(i).gameObject.SetActive(false);
 
-                //var doors = structure.transform.GetChild(i).GetComponentsInChildren<Door>();
-                //for (int j = 0; j < doors.Length; j++)
-                //{
-                //    doors[j].SetInteractionAreaEnterCallback((GameObject interactive) =>
-                //    {
-                //        actorContoller.CanInteractWithObject = true;
-                //        actorContoller.ObjectToInteract = interactive.GetComponent<InteractiveObject>();
-                //    });
-
-                //    doors[j].SetInteractionAreaExitCallback(() =>
-                //    {
-                //        actorContoller.CanInteractWithObject = false;
-                //        actorContoller.ObjectToInteract = null;
-                //    });
-
-                //    doors[j].Init(
-                //        (GameObject currentRoom, GameObject targetRoom, ActorController actor, GameObject door, Action onFaded) =>
-                //        {
-                //            //player.GetComponent<ActorController>().SetCurrentRoom(targetRoom);
-                //            actor.SetCurrentRoom(targetRoom);
-                //            _onDoorEnterAction(currentRoom, targetRoom, actor, door, onFaded);
-                //        });
-                //}
-            //}
-            //player.GetComponent<ActorController>().OnDeath = () =>
+            //var doors = structure.transform.GetChild(i).GetComponentsInChildren<Door>();
+            //for (int j = 0; j < doors.Length; j++)
             //{
-            //    _playerDeathHandler(spawnManager, player);
-            //};
+            //    doors[j].SetInteractionAreaEnterCallback((GameObject interactive) =>
+            //    {
+            //        actorContoller.CanInteractWithObject = true;
+            //        actorContoller.ObjectToInteract = interactive.GetComponent<InteractiveObject>();
+            //    });
+
+            //    doors[j].SetInteractionAreaExitCallback(() =>
+            //    {
+            //        actorContoller.CanInteractWithObject = false;
+            //        actorContoller.ObjectToInteract = null;
+            //    });
+
+            //    doors[j].Init(
+            //        (GameObject currentRoom, GameObject targetRoom, ActorController actor, GameObject door, Action onFaded) =>
+            //        {
+            //            //player.GetComponent<ActorController>().SetCurrentRoom(targetRoom);
+            //            actor.SetCurrentRoom(targetRoom);
+            //            _onDoorEnterAction(currentRoom, targetRoom, actor, door, onFaded);
+            //        });
+            //}
+            //}
+            player.GetComponent<ActorController>().OnDeath = () =>
+            {
+                _playerDeathHandler(player);
+            };
             //spawnManager.SpawnPlayer(player);
 
             OnWorkFinished();

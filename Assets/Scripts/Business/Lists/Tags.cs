@@ -6,5 +6,6 @@
         public const string PlayerSpawnPoint = "PlayerSpawnPoint";
         public const string Player = "Player";
         public const string NPC = "NPC";
+        public const string AttackCollider = "AttackCollider";
     }
 }

@@ -2,7 +2,12 @@
 
 namespace Assets.Scripts.Objects.Actors
 {
-    public enum ActorState { None, Running, Standing, Jumping, Accelerating, StoppingJump, Decellerating, Falling, Landing, Attacking, TakingDamage, Interacting, Dashing }
+    public enum ActorState { 
+        None, Running, Standing, Dashing,
+        Jumping, Accelerating, StoppingJump, Decellerating, Falling, Landing,
+        StartingAttack, Attacking, FinishedAttacking, TakingDamage, TookDamage,
+        Interacting, Dieing
+    }
     public enum LookDirection { Left=-1, None=0, Right=1 }
 
     public class ActorStateMachine
@@ -37,15 +42,25 @@ namespace Assets.Scripts.Objects.Actors
         private bool CanBeApplied(ActorState actorState)
         {
             if (actorState == ActorState.None) return false;
+
             if (actorState == ActorState.StoppingJump) Debug.Log(actorState);
             if (CurrentState == ActorState.Jumping && actorState != ActorState.Accelerating) return false;
             if (CurrentState == ActorState.Accelerating && actorState != ActorState.StoppingJump
                 && actorState != ActorState.Decellerating && actorState != ActorState.Falling) return false;
+            if (CurrentState != ActorState.Accelerating && actorState == ActorState.StoppingJump) return false;
+
             if (CurrentState == ActorState.Falling && actorState != ActorState.Landing) return false;
+            if (CurrentState == ActorState.Landing && actorState != ActorState.Standing && actorState != ActorState.Running) return false;
             if (CurrentState == ActorState.StoppingJump && actorState != ActorState.Decellerating) return false;
             if (CurrentState == ActorState.Decellerating && actorState != ActorState.Falling) return false;
-            if (CurrentState == ActorState.Standing && actorState == ActorState.StoppingJump) return false;
-            Debug.Log(actorState);
+
+            if (CurrentState == ActorState.StartingAttack && actorState != ActorState.Attacking) return false;
+            if (CurrentState == ActorState.Attacking && actorState != ActorState.FinishedAttacking) return false;
+            if (CurrentState == ActorState.FinishedAttacking && actorState != ActorState.Standing) return false;
+
+            if (CurrentState == ActorState.TakingDamage && actorState != ActorState.TookDamage && actorState != ActorState.Dieing) return false;
+            if (CurrentState == ActorState.TookDamage && actorState != ActorState.Standing) return false;
+            Debug.Log("State: " + actorState);
             return true;
         }
         private bool CanBeApplied(LookDirection direction)
